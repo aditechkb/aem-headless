@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Dispatcher Configuration Validator</title>
+  <style>
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Dispatcher Configuration Validator</h1>
+</header>
+<p>This program validates a dispatcher configuration, containing Apache and dispatcher configuration files.</p>
+<h2 id="usage">Usage</h2>
+<p><code>validator full [-d folder] [-w allowlist] zip-file | src folder</code></p>
+<h2 id="how-it-works">How it works</h2>
+<p>The tool validates the Apache and dispatcher configuration contained in a zip file or a <code>dispatcher/src</code> folder of a git repo. It scans all files with pattern <code>conf.d/enabled_vhosts/*.vhost</code> and checks that only <a href="#format-of-allowlist">allowlisted</a> directives are used. It further scans all files with pattern <code>conf.dispatcher.d/enabled_farms/*.farm</code> and checks that:</p>
+<ul>
+<li>no filter rule exists that allows via glob (see CVE-2016-0957)</li>
+<li>no admin feature is exposed (e.g. <code>/crx/de</code> or <code>/system/console</code>)</li>
+</ul>
+<h2 id="what-is-generated">What is generated</h2>
+<p>In CloudManager deployment, or if you specify a deployment folder (with option <code>-d</code>), the following files are created by the validation tool:</p>
+<table>
+<colgroup>
+<col style="width: 23%" />
+<col style="width: 76%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>File name</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>clientheaders.any</code></td>
+<td>Copy of respective file from <code>conf.dispatcher.d/clientheaders</code></td>
+</tr>
+<tr class="even">
+<td><code>custom.vars</code></td>
+<td>Copy of respective file from <code>conf.d/variables</code></td>
+</tr>
+<tr class="odd">
+<td><code>farms.any</code></td>
+<td>Concatenated list of farms in <code>conf.dispatcher.d/enabled_farms</code></td>
+</tr>
+<tr class="even">
+<td><code>filters.any</code></td>
+<td>Copy of respective file from <code>conf.dispatcher.d/filters</code></td>
+</tr>
+<tr class="odd">
+<td><code>global.vars</code></td>
+<td>Copy of respective file from <code>conf.d/variables</code></td>
+</tr>
+<tr class="even">
+<td><code>rewrite.rules</code></td>
+<td>Copy of respective file from <code>conf.d/rewrites</code></td>
+</tr>
+<tr class="odd">
+<td><code>rules.any</code></td>
+<td>Copy of respective file from <code>conf.dispatcher.d/cache</code></td>
+</tr>
+<tr class="even">
+<td><code>virtualhosts.any</code></td>
+<td>Copy of respective file from <code>conf.dispatcher.d/virtualhosts</code></td>
+</tr>
+<tr class="odd">
+<td><code>vhosts.conf</code></td>
+<td>Concatenated list of virtualhosts in <code>conf.d/enabled_vhosts</code></td>
+</tr>
+</tbody>
+</table>
+<p>These files constitute the customizable part of your Apache/dispatcher runtime environment. For mone information on what part of your configuration is customizable, see <a href="https://experienceleague.adobe.com/docs/experience-manager-cloud-service/content/implementing/content-delivery/validation-debug.html?lang=en#apache-and-dispatcher-configuration-and-testing">Config</a>.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p>See the <a href="./TroubleShooting.html">Troubleshooting</a> document for a description of errors and how to fix them.</p>
+<h2 id="format-of-allowlist">Format of allowlist</h2>
+<p>The allowlist contains a list of Apache directives expected in the customer configuration. If a directive is not allowlisted, the tool logs an error and returns a non-zero exit code.</p>
+<p>If no allowlist is given on the command line, the tool uses a default allowlist. Run <code>validator allowlist</code> to print that list.</p>
+<h2 id="generate-deployment-information">Generate deployment information</h2>
+<p>When the argument <code>-d</code> is added, the tool stores deployment information in a folder. This folder can then be used with the <code>docker_run.sh</code> script (<code>docker_run.cmd</code> on Windows).</p>
+</body>
+</html>

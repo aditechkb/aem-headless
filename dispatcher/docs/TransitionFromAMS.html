@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>How to convert an AMS to an Adobe Experience Manager as a Cloud Service Dispatcher configuration</title>
+  <style>
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">How to convert an AMS to an Adobe Experience Manager as a Cloud Service Dispatcher configuration</h1>
+</header>
+<p>This file provides step by step instructions on how to convert an AMS configuration. It assumes that you have an archive with a structure similar to the one described in <a href="https://docs.adobe.com/content/help/en/experience-manager-cloud-manager/using/getting-started/dispatcher-configurations.html">Cloud Manager dispatcher configuration</a></p>
+<h2 id="extract-the-archive-and-remove-an-eventual-prefix">Extract the archive and remove an eventual prefix</h2>
+<p>Extract the archive to a folder, and make sure the immediate subfolders start with <code>conf</code>, <code>conf.d</code>, <code>conf.dispatcher.d</code> and <code>conf.modules.d</code>. If they don’t, move them up in the hierarchy.</p>
+<h2 id="get-rid-of-ununsed-subfolders-and-files">Get rid of ununsed subfolders and files</h2>
+<p>Remove subfolders <code>conf</code> and <code>conf.modules.d</code>, as well as files matching <code>conf.d/*.conf</code>.</p>
+<h2 id="get-rid-of-all-non-publish-virtual-hosts">Get rid of all non-publish virtual hosts</h2>
+<p>Remove any virtual host file in <code>conf.d/enabled_vhosts</code> that has <code>author</code>, <code>unhealthy</code>, <code>health</code>, <code>lc</code> or <code>flush</code> in its name. All virtual host files in <code>conf.d/available_vhosts</code> that are not linked to can be removed as well.</p>
+<h2 id="remove-or-comment-virtual-host-sections-that-do-not-refer-to-port-80">Remove or comment virtual host sections that do not refer to port 80</h2>
+<p>If you still have sections in your virtual host files that exclusively refer to other ports than port 80, e.g.</p>
+<pre><code>&lt;VirtualHost *:443&gt;
+...
+&lt;/VirtualHost&gt;</code></pre>
+<p>remove or comment them. Statements in these sections will not get processed, but if you keep them around, you might still end up editing them with no effect, which is confusing.</p>
+<h2 id="check-rewrites">Check rewrites</h2>
+<p>Enter directory <code>conf.d/rewrites</code>.</p>
+<p>Remove any file named <code>base_rewrite.rules</code> and <code>xforwarded_forcessl_rewrite.rules</code> and remember to remove <code>Include</code> statements in the virtual host files referring to them.</p>
+<p>If <code>conf.d/rewrites</code> now contains a single file, it should be renamed to <code>rewrite.rules</code> and don’t forget to adapt the <code>Include</code> statements referring to that file in the virtual host files as well.</p>
+<p>If the folder however contains multiple, virtual host specific files, their contents should be copied to the <code>Include</code> statement referring to them in the virtual host files.</p>
+<h2 id="check-variables">Check variables</h2>
+<p>Enter directory <code>conf.d/variables</code>.</p>
+<p>Remove any file named <code>ams_default.vars</code> and remember to remove <code>Include</code> statements in the virtual host files referring to them.</p>
+<p>If <code>conf.d/variables</code> now contains a single file, it should be renamed to <code>custom.vars</code> and don’t forget to adapt the <code>Include</code> statements referring to that file in the virtual host files as well.</p>
+<p>If the folder however contains multiple, virtual host specific files, their contents should be copied to the <code>Include</code> statement referring to them in the virtual host files.</p>
+<h2 id="remove-whitelists">Remove whitelists</h2>
+<p>Remove the folder <code>conf.d/whitelists</code> and remove <code>Include</code> statements in the virtual host files referring to some file in that subfolder.</p>
+<h2 id="replace-any-variable-that-is-no-longer-available">Replace any variable that is no longer available</h2>
+<p>In all virtual host files:</p>
+<ul>
+<li>Rename <code>PUBLISH_DOCROOT</code> to <code>DOCROOT</code></li>
+<li>Remove sections referring to variables named <code>DISP_ID</code>, <code>PUBLISH_FORCE_SSL</code> or <code>PUBLISH_WHITELIST_ENABLED</code></li>
+</ul>
+<h2 id="check-your-state-by-running-the-validator">Check your state by running the validator</h2>
+<p>Run the dispatcher validator in your directory, with the <code>httpd</code> subcommand:</p>
+<pre><code>$ validator httpd .</code></pre>
+<p>If you see errors about missing include files, check whether you correctly renamed those files.</p>
+<p>If you see Apache directives that are not whitelisted, remove them.</p>
+<h2 id="get-rid-of-all-non-publish-farms">Get rid of all non-publish farms</h2>
+<p>Remove any farm file in <code>conf.dispatcher.d/enabled_farms</code> that has <code>author</code>, <code>unhealthy</code>, <code>health</code>, <code>lc</code> or <code>flush</code> in its name. All farm files in <code>conf.dispatcher.d/available_farms</code> that are not linked to can be removed as well.</p>
+<h2 id="rename-farm-files">Rename farm files</h2>
+<p>All farms in <code>conf.dispatcher.d/enabled_farms</code> must be renamed to match the pattern <code>*.farm</code>, so e.g. a farm file called <code>customerX_farm.any</code> should be renamed <code>customerX.farm</code>.</p>
+<h2 id="check-cache">Check cache</h2>
+<p>Enter directory <code>conf.dispatcher.d/cache</code>.</p>
+<p>Remove any file prefixed <code>ams_</code>.</p>
+<p>If <code>conf.dispatcher.d/cache</code> is now empty, copy the file <code>conf.dispatcher.d/cache/rules.any</code> from the standard dispatcher configuration to this folder. The standard dispatcher configuration can be found in the folder <code>src</code> of this SDK. Don’t forget to adapt the <code>$include</code> statements referring to the <code>ams_*_cache.any</code> rule files in the farm files as well.</p>
+<p>If instead <code>conf.dispatcher.d/cache</code> now contains a single file with suffix <code>_cache.any</code>, it should be renamed to <code>rules.any</code> and don’t forget to adapt the <code>$include</code> statements referring to that file in the farm files as well.</p>
+<p>If the folder however contains multiple, farm specific files with that pattern, their contents should be copied to the <code>$include</code> statement referring to them in the farm files.</p>
+<p>Remove any file that has the suffix <code>_invalidate_allowed.any</code>.</p>
+<p>Copy the file <code>conf.dispatcher.d/cache/default_invalidate_any</code> from the default dispatcher configuration to that location.</p>
+<p>In each farm file, remove any contents in the <code>cache/allowedClients</code> section and replace it with:</p>
+<pre><code>$include &quot;../cache/default_invalidate.any&quot;</code></pre>
+<h2 id="check-client-headers">Check client headers</h2>
+<p>Enter directory <code>conf.dispatcher.d/clientheaders</code>.</p>
+<p>Remove any file prefixed <code>ams_</code>.</p>
+<p>If <code>conf.dispatcher.d/clientheaders</code> now contains a single file with suffix <code>_clientheaders.any</code>, it should be renamed to <code>clientheaders.any</code> and don’t forget to adapt the <code>$include</code> statements referring to that file in the farm files as well.</p>
+<p>If the folder however contains multiple, farm specific files with that pattern, their contents should be copied to the <code>$include</code> statement referring to them in the farm files.</p>
+<p>Copy the file <code>conf.dispatcher/clientheaders/default_clientheaders.any</code> from the default dispatcher configuration to that location.</p>
+<p>In each farm file, replace any clientheader include statements that looks as follows:</p>
+<pre><code>$include &quot;/etc/httpd/conf.dispatcher.d/clientheaders/ams_publish_clientheaders.any&quot;
+$include &quot;/etc/httpd/conf.dispatcher.d/clientheaders/ams_common_clientheaders.any&quot;</code></pre>
+<p>with the statement:</p>
+<pre><code>$include &quot;../clientheaders/default_clientheaders.any&quot;</code></pre>
+<h2 id="check-filter">Check filter</h2>
+<p>Enter directory <code>conf.dispatcher.d/filters</code>.</p>
+<p>Remove any file prefixed <code>ams_</code>.</p>
+<p>If <code>conf.dispatcher.d/filters</code> now contains a single file it should be renamed to <code>filters.any</code> and don’t forget to adapt the <code>$include</code> statements referring to that file in the farm files as well.</p>
+<p>If the folder however contains multiple, farm specific files with that pattern, their contents should be copied to the <code>$include</code> statement referring to them in the farm files.</p>
+<p>Copy the file <code>conf.dispatcher/filters/default_filters.any</code> from the default dispatcher configuration to that location.</p>
+<p>In each farm file, replace any filter include statements that looks as follows:</p>
+<pre><code>$include &quot;/etc/httpd/conf.dispatcher.d/filters/ams_publish_filters.any&quot;</code></pre>
+<p>with the statement:</p>
+<pre><code>$include &quot;../filters/default_filters.any&quot;</code></pre>
+<h2 id="check-renders">Check renders</h2>
+<p>Enter directory <code>conf.dispatcher.d/renders</code>.</p>
+<p>Remove all files in that folder.</p>
+<p>Copy the file <code>conf.dispatcher.d/renders/default_renders.any</code> from the default dispatcher configuration to that location.</p>
+<p>In each farm file, remove any contents in the <code>renders</code> section and replace it with:</p>
+<pre><code>$include &quot;../renders/default_renders.any&quot;</code></pre>
+<h2 id="check-virtualhosts">Check virtualhosts</h2>
+<p>Rename the directory <code>conf.dispatcher.d/vhosts</code> to <code>conf.dispatcher.d/virtualhosts</code> and enter it.</p>
+<p>Remove any file prefixed <code>ams_</code>.</p>
+<p>If <code>conf.dispatcher.d/virtualhosts</code> now contains a single file it should be renamed to <code>virtualhosts.any</code> and don’t forget to adapt the <code>$include</code> statements referring to that file in the farm files as well.</p>
+<p>If the folder however contains multiple, farm specific files with that pattern, their contents should be copied to the <code>$include</code> statement referring to them in the farm files.</p>
+<p>Copy the file <code>conf.dispatcher/virtualhosts/default_virtualhosts.any</code> from the default dispatcher configuration to that location.</p>
+<p>In each farm file, replace any filter include statements that looks as follows:</p>
+<pre><code>$include &quot;/etc/httpd/conf.dispatcher.d/vhosts/ams_publish_vhosts.any&quot;</code></pre>
+<p>with the statement:</p>
+<pre><code>$include &quot;../virtualhosts/default_virtualhosts.any&quot;</code></pre>
+<h2 id="check-your-state-by-running-the-validator-1">Check your state by running the validator</h2>
+<p>Run the dispatcher validator in your directory, with the <code>dispatcher</code> subcommand:</p>
+<pre><code>$ validator dispatcher .</code></pre>
+<p>If you see errors about missing include files, check whether you correctly renamed those files.</p>
+<p>If you see errors concerning undefined variable <code>PUBLISH_DOCROOT</code>, rename it to <code>DOCROOT</code>.</p>
+<p>For every other error, see the <a href="./TroubleShooting.html">Troubleshooting</a> section of the validator tool documentation.</p>
+<h2 id="test-your-configuration-with-a-local-deployment-requires-docker-installation">Test your configuration with a local deployment (requires Docker installation)</h2>
+<p>Using the script <code>docker_run.sh</code> in the Dispatcher SDK, you can test that your configuration does not contain any other error that would only show up in deployment:</p>
+<h3 id="step-1-generate-deployment-information-with-the-validator">Step 1: Generate deployment information with the validator</h3>
+<pre><code>validator full -d out .</code></pre>
+<p>This validates the full configuration and generates deployment information in <code>out</code></p>
+<h3 id="step-2-validate-the-deployment-information-by-the-dispatcher-in-a-docker-image">Step 2: Validate the deployment information by the Dispatcher in a docker image</h3>
+<pre><code>$ ./bin/docker_run.sh out localhost:4503 test</code></pre>
+<p>This will start the container, run Apache in configuration test mode (httpd -t), dump processed dispatcher.any config (-D DUMP_ANY) and exit.</p>
+<h3 id="step-3-confirm-that-no-immutable-config-file-was-changed-against-a-docker-image-ones">Step 3: Confirm that no immutable config file was changed against a docker image ones</h3>
+<pre><code>$ ./bin/docker_immutability_check.sh out</code></pre>
+<p>This will start the container and run comparisons against changes in immutable config files. See also description on <a href="./Config.html">Immutable Configuration Files</a></p>
+<h3 id="step-4-start-the-dispatcher-in-a-docker-image-with-that-deployment-information">Step 4: Start the dispatcher in a docker image with that deployment information</h3>
+<p>With your AEM publish server running on your macOS computer, listening on port 4503, you can run start the dispatcher in front of that server as follows:</p>
+<pre><code>$ docker_run.sh out docker.for.mac.localhost:4503 8080</code></pre>
+<p>This will start the container and expose Apache on local port 8080.</p>
+<h2 id="use-your-new-dispatcher-configuration">Use your new dispatcher configuration</h2>
+<p>Congratulations! If the validator no longer reports any issue and the docker container starts up without any failures or warnings, you’re ready to move your configuration to a <code>dispatcher/src</code> subdirectory of your git repository.</p>
+</body>
+</html>

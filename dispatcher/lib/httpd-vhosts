@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+
+if [ -f /usr/sbin/envvars ]; then
+  . /usr/sbin/envvars
+fi
+
+exec su-exec "${APACHE_USER}:${APACHE_GROUP}" httpd -t -D DUMP_VHOSTS -f /etc/httpd/conf/httpd.conf

@@ -1,0 +1,33 @@
+<sly data-sly-use.clientlib="/libs/granite/sightly/templates/clientlib.html" 
+    data-sly-call="${clientlib.all @ categories='wknd.faq'}"/>
+
+
+<h2>${properties.title}</h2>
+
+<sly data-sly-use.model="com.adobe.aem.guides.wknd.core.models.Faq"/>
+
+
+<sly data-sly-list.faqList=${model.getFaqList}>
+	<button class="accordion">${faqList.question}</button>
+		<div class="panel">
+  	<p>${faqList.answer.plaintext}</p>
+</div>
+</sly>
+
+
+<script>
+var acc = document.getElementsByClassName("accordion");
+var i;
+
+for (i = 0; i < acc.length; i++) {
+  acc[i].addEventListener("click", function() {
+    this.classList.toggle("active");
+    var panel = this.nextElementSibling;
+    if (panel.style.display === "block") {
+      panel.style.display = "none";
+    } else {
+      panel.style.display = "block";
+    }
+  });
+}
+</script>

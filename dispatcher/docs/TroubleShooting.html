@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Troubleshooting your validation problems</title>
+  <style>
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Troubleshooting your validation problems</h1>
+</header>
+<p>Here follows a list of error messages and how to resolve them:</p>
+<h2 id="unable-to-locate-a-conf.dispatcher.d-subfolder-in-the-archive">unable to locate a <code>conf.dispatcher.d</code> subfolder in the archive</h2>
+<p>Your archive should contain folders <code>conf.d</code> and <code>conf.dispatcher.d</code>. Note, that you should <strong>not</strong> use the prefix <code>etc/httpd</code> in your archive.</p>
+<h2 id="unable-to-find-any-farm-in-conf.dispatcher.denabled_farms">unable to find any farm in <code>conf.dispatcher.d/enabled_farms</code></h2>
+<p>Your enabled farms should be located in the mentioned subfolder.</p>
+<h2 id="file-included-must-be-named">file included (…) must be named: …</h2>
+<p>There are two sections in your farm configuration that <strong>must</strong> include a specific file: <code>/renders</code> and <code>/allowedClients</code> in the <code>/cache</code> section. Those sections must look as follows:</p>
+<pre><code>/renders {
+    $include &quot;../renders/default_renders.any&quot;
+}</code></pre>
+<p>and:</p>
+<pre><code>/allowedClients {
+    $include &quot;../cache/default_invalidate.any&quot;
+}</code></pre>
+<h2 id="file-included-at-unknown-location">file included at unknown location: …</h2>
+<p>There are four sections in your farm configuration where you’re allowed to include a file of your own: <code>/clientheaders</code>, <code>filters</code>, <code>/rules</code> in <code>/cache</code> section and <code>/virtualhosts</code>. The included files need to be named as follows:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Section</th>
+<th>Include file name</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>/clientheaders</code></td>
+<td><code>../clientheaders/clientheaders.any</code></td>
+</tr>
+<tr class="even">
+<td><code>/filters</code></td>
+<td><code>../filters/filters.any</code></td>
+</tr>
+<tr class="odd">
+<td><code>/rules</code></td>
+<td><code>../cache/rules.any</code></td>
+</tr>
+<tr class="even">
+<td><code>/virtualhosts</code></td>
+<td><code>../virtualhosts/virtualhosts.any</code></td>
+</tr>
+</tbody>
+</table>
+<p>Alternatively, you can include the <strong>default</strong> version of those files, whose names are prepended with the word <code>default_</code>, e.g. <code>../filters/default_filters.any</code>.</p>
+<h2 id="include-statement-at-outside-any-known-location">include statement at (…), outside any known location: …</h2>
+<p>Apart from the six sections mentioned in the paragraphs above, you are not allowed to use the <code>$include</code> statement, e.g. the following would generate this error:</p>
+<pre><code>/invalidate {
+    $include &quot;../cache/invalidate.any&quot;
+}</code></pre>
+<h2 id="allowed-clientsrenders-are-not-included-from">allowed clients/renders are not included from: …</h2>
+<p>This error is generated when you don’t specify an include for <code>/renders</code> and <code>/allowedClients</code> in the <code>/cache</code> section. See the <a href="#file-included-(...)-must-be-named:-...">top entry</a> in this Troubleshooting for more information.</p>
+<h2 id="filter-must-not-use-glob-pattern-to-allow-requests">filter must not use glob pattern to allow requests</h2>
+<p>It is not secure to allow requests with a <code>/glob</code> style rule, which is matched against the complete request line, e.g.</p>
+<pre><code>/0100 {
+    /type &quot;allow&quot; /glob &quot;GET *.css *&quot;
+}</code></pre>
+<p>This statement is meant to allow requests for <code>css</code> files, but it also allows requests to <strong>any</strong> resource followed by the query string <code>?a=.css</code>. It is therefore forbidden to use such filters (see also CVE-2016-0957).</p>
+<h2 id="included-file-does-not-match-any-known-file">included file (…) does not match any known file</h2>
+<p>There are two types of files in your Apache virtual host configuration that can be specified as includes: rewrites and variables. The included files need to be named as follows:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Type</th>
+<th>Include file name</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Rewrites</td>
+<td><code>conf.d/rewrites/rewrite.rules</code></td>
+</tr>
+<tr class="even">
+<td>Variables</td>
+<td><code>conf.d/variables/custom.vars</code></td>
+</tr>
+</tbody>
+</table>
+<p>Alternatively, you can include the <strong>default</strong> version of the rewrite rules, whose name is <code>conf.d/rewrites/default_rewrite.rules</code>. Note, that there is no default version of the variables files.</p>
+<h2 id="deprecated-configuration-layout-detected-enabling-compatibility-mode">Deprecated configuration layout detected, enabling compatibility mode</h2>
+<p>This message indicates that your configuration has the deprecated version 1 layout, containing a complete Apache configuration and files with <code>ams_</code> prefixes. While this is still supported for backward compatibility you should switch to the new layout.</p>
+</body>
+</html>

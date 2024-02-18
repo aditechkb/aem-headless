@@ -1,0 +1,71 @@
+#!/bin/sh
+set -e
+if [ ! -z "${VERBOSE_DEBUG}" ]; then
+  set -x
+fi
+
+source /usr/lib/dispatcher-sdk/configuration_reloading.sh
+
+PID_FILE="${APACHE_RUN_DIR}/httpd.pid"
+
+echo "$(date) Monitoring file changes on mount source at ${CUSTOMER_CONF} started"
+
+while inotifywait -r -e modify -e create -e delete --format "Monitor: %e %w" ${CUSTOMER_CONF}
+    do
+	rm -rf "${TESTING_BASE}"
+	build_configuration "${TESTING_BASE}" check
+	APACHE_PREFIX="${RUNNING_BASE}" . /docker_entrypoint.d/40-generate-allowed-clients.sh
+	if [ -f "/docker_entrypoint.d/zzz-overwrite_cache_invalidation.sh" ]; then
+		APACHE_PREFIX="${RUNNING_BASE}" . /docker_entrypoint.d/zzz-overwrite_cache_invalidation.sh
+	fi
+	config_changed=0
+	check_configuration_changed "${RUNNING_BASE}" "${TESTING_BASE}" || config_changed=$?
+	if [ $config_changed -ne 0 ]
+	then
+		echo " "
+		echo " "
+		log_info ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Changes detected reload <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+		
+		test_result=0
+		test_configuration "${TESTING_BASE}" "${CUSTOMER_CONF}" || test_result=$?
+		if [ $test_result -eq 0 ]; then
+			# Build configuration and restart
+			log_info "Config Ok, reloading"
+			
+			# Move previous configuration instead of removing it to not break open files
+			rm -rf "${PREVIOUS_BASE}"
+			mv "${RUNNING_BASE}" "${PREVIOUS_BASE}"
+			build_configuration ${RUNNING_BASE}
+
+			# As new docroots could have been introduced by the client configuration
+			# they have to be created again.
+			APACHE_PREFIX="${RUNNING_BASE}" . /docker_entrypoint.d/20-create-docroots.sh
+			APACHE_PREFIX="${RUNNING_BASE}" . /docker_entrypoint.d/40-generate-allowed-clients.sh
+			if [ -f "/docker_entrypoint.d/zzz-overwrite_cache_invalidation.sh" ]; then
+				APACHE_PREFIX="${RUNNING_BASE}" . /docker_entrypoint.d/zzz-overwrite_cache_invalidation.sh
+			fi
+
+			log_info "Reloading httpd config via sending signal to httpd initiated"
+			if [[ -f ${PID_FILE} ]]
+			then
+				log_info "Using httpd PID from ${PID_FILE}"
+				kill -USR1 $(cat ${PID_FILE})
+				log_info "Signal to reload httpd config sent" 
+			else
+				log_warn "No httpd PID file found at ${PID_FILE}"
+			fi
+			log_info "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<     Reload Complete     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+		else
+			log_warn "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<     Reload Incomplete     >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+		fi 
+		echo " "
+		echo " "
+	else
+		log_info "no changes found."
+	fi
+	sleep 1
+
+done
+
+log_warn "Monitor exited, container restart required."
+su-exec "${APACHE_USER}:${APACHE_GROUP}" httpd -d ${RUNNING_BASE} -f ${RUNNING_BASE}/conf/httpd.conf  -k stop

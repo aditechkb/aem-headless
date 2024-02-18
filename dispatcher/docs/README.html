@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Adobe Experience Manager as a Cloud Service Dispatcher Tools</title>
+  <style>
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Adobe Experience Manager as a Cloud Service Dispatcher Tools</h1>
+</header>
+<p>In the following referred to as <code>dispatcher</code> for readability purposes. For further information please read the <a href="https://experienceleague.adobe.com/docs/experience-manager-cloud-service/content/implementing/content-delivery/disp-overview.html?lang=en">public documentation</a>.</p>
+<h2 id="contents">Contents</h2>
+<p>The Dispatcher Tools are part of the AEM as a Cloud Service SDK and contains the following:</p>
+<ul>
+<li>Dispatcher Configuration</li>
+<li>Dispatcher Validator</li>
+<li>Dispatcher Docker Image</li>
+</ul>
+<h2 id="dispatcher-configuration">Dispatcher Configuration</h2>
+<p>The <a href="../src">src</a> subdirectory contains a dispatcher configuration that you can use as a starting point. See <a href="https://experienceleague.adobe.com/docs/experience-manager-cloud-service/content/implementing/content-delivery/validation-debug.html?lang=en">Validating and Debugging using Dispatcher Tools</a> for more information. When you have finished working on your configuration you can validate it.</p>
+<h2 id="dispatcher-validator">Dispatcher Validator</h2>
+<p>The <a href="../bin">bin</a> subdirectory contains a validator binary for macOS and Linux. See <a href="https://experienceleague.adobe.com/docs/experience-manager-cloud-service/content/implementing/content-delivery/validation-debug.html?lang=en">Validating and Debugging using Dispatcher Tools</a> for more information. When validation succeeds, you can dump deployment information to a folder and use it as input to a local docker image for testing.</p>
+<h2 id="dispatcher-docker-image">Dispatcher Docker Image</h2>
+<p>The <a href="../bin">bin</a> subdirectory also contains a docker image and a shell script to execute that will use your deployment information and run an Apache and dispatcher in a docker container. For usage just call the <code>docker-run.sh</code> (<code>docker-run.cmd</code> on windows) without parameters.</p>
+<h2 id="quick-walkthrough-of-local-development-and-testing">Quick walkthrough of local development and testing</h2>
+<p>The following three validation steps are newly wrapped in the <code>validate.sh</code> script as phases 1-3.</p>
+<pre><code>$ ./bin/validate.sh src</code></pre>
+<h3 id="validate.sh-and-validate.cmd-scripts-changes">validate.sh and validate.cmd scripts changes</h3>
+<p>The validate.sh (*nix) / validate.cmd (Windows) will now prompt the user to update the immutable files during the phase 3, if they got changed. The default behavior is to prompt whether the user wants to update or not the immutable files. It is highly recommended to accept the prompt in order to keep the immutable files in line with the configuration provided by Adobe.</p>
+<p>This behavior can be disabled by setting the environment variable:</p>
+<pre><code>$ IMMUTABLE_FILES_UPDATE=false ./bin/validate.sh src</code></pre>
+<p>On Windows, type:</p>
+<pre><code>$ set IMMUTABLE_FILES_UPDATE=false
+$ bin\validate.cmd src</code></pre>
+<h3 id="step-1-validate-the-dispatcher-configuration-contained-in-this-sdk">Step 1: Validate the Dispatcher configuration contained in this SDK</h3>
+<pre><code>$ ./bin/validator full -d out src</code></pre>
+<p>On Windows, type:</p>
+<pre><code>&gt; bin\validator full -d out src</code></pre>
+<p>This validates the configuration and generates deployment information in <code>out</code>.</p>
+<h3 id="step-2-validate-the-deployment-information-by-the-dispatcher-in-a-docker-image">Step 2: Validate the deployment information by the Dispatcher in a docker image</h3>
+<pre><code>$ ./bin/docker_run.sh out localhost:4503 test</code></pre>
+<p>On Windows, type:</p>
+<pre><code>&gt; bin\docker_run.cmd out localhost:4503 test</code></pre>
+<p>This will start the container, run Apache in configuration test mode (httpd -t), dump processed dispatcher.any config (-D DUMP_ANY) and exit.</p>
+<h3 id="step-3-confirm-that-no-immutable-config-file-was-changed-against-a-docker-image-ones">Step 3: Confirm that no immutable config file was changed against a docker image ones</h3>
+<pre><code>$ ./bin/docker_immutability_check.sh src</code></pre>
+<p>On Windows, type:</p>
+<pre><code>&gt; bin\docker_immutability_check.cmd src</code></pre>
+<p>This will start the container and run comparisons against changes in immutable config files. See also description on <a href="https://experienceleague.adobe.com/docs/experience-manager-cloud-service/content/implementing/content-delivery/validation-debug.html?lang=en#flexible-mode-file-structure">Immutable Configuration Files</a></p>
+<p>To get back the original immutable files (e.g. in case of any changes made to them locally) or to get the latest version of immutable files compatible with this version of SDK and replace your local ones in-place with them, type:</p>
+<pre><code>$ ./bin/docker_immutability_check.sh src extract</code></pre>
+<p>On Windows, type:</p>
+<pre><code>&gt; bin\docker_immutability_check.cmd src extract</code></pre>
+<h3 id="step-4-start-the-dispatcher-in-a-docker-image-with-that-deployment-information">Step 4: Start the Dispatcher in a docker image with that deployment information</h3>
+<p>With your AEM publish server running on your computer, listening on port 4503, you can start the dispatcher in front of that server as follows:</p>
+<pre><code>$ ./bin/docker_run.sh out host.docker.internal:4503 8080</code></pre>
+<p>On Windows, type:</p>
+<pre><code>&gt; bin\docker_run.cmd out host.docker.internal:4503 8080</code></pre>
+<p>This will start the container and expose Apache on local port 8080.</p>
+</body>
+</html>

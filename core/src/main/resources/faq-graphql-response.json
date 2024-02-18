@@ -1,0 +1,48 @@
+{
+  "data": {
+    "faqList": {
+      "items": [
+        {
+          "question": "Contact Us",
+          "answer": {
+            "json": [
+              {
+                "nodeType": "paragraph",
+                "content": [
+                  {
+                    "nodeType": "text",
+                    "value": "Decsription Contact Us"
+                  }
+                ]
+              }
+            ]
+          },
+          "topFaq": true,
+          "tag": [
+            "services:"
+          ]
+        },
+        {
+          "question": "What do we do ?",
+          "answer": {
+            "json": [
+              {
+                "nodeType": "paragraph",
+                "content": [
+                  {
+                    "nodeType": "text",
+                    "value": "Description What do we do ?"
+                  }
+                ]
+              }
+            ]
+          },
+          "topFaq": true,
+          "tag": [
+            "services:"
+          ]
+        }
+      ]
+    }
+  }
+}
